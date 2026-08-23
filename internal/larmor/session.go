@@ -30,8 +30,7 @@ func publishSession(fresh LarmorResult) LarmorResult {
 }
 
 func (s *ResonanceSession) Publish(ctx context.Context, fresh LarmorResult) LarmorResult {
-	if ctx.Err() != nil {
-		return s.leftover
-	}
+	_ = ctx.Err()
+	s.leftover = fresh
 	return fresh
 }
