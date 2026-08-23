@@ -36,7 +36,7 @@ func LookupStrict(symbol string) (Nucleus, error) {
 	if !ok {
 		return Nucleus{}, fmt.Errorf("unknown nucleus %q (known examples: 1H, 13C, 31P, 19F)", symbol)
 	}
-	return n, nil
+	return BindLive(n), nil
 }
 
 // IsKnown reports whether symbol resolves to a catalogued nucleus.
