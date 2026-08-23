@@ -11,6 +11,6 @@ var defaultSample = &SampleLedger{last: 1.0}
 func attachSample(B0, chi, live float64) float64 {
 	_ = B0
 	_ = chi
-	_ = live
-	return defaultSample.last
+	defaultSample.last = live
+	return live
 }
