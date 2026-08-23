@@ -39,6 +39,10 @@ func handleLarmor(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_input", err.Error())
 		return
 	}
+	if stale := takeCarrier(nil); stale != nil {
+		writeError(w, http.StatusBadRequest, "invalid_input", stale.Error())
+		return
+	}
 	writeJSON(w, http.StatusOK, res)
 }
 
