@@ -21,7 +21,8 @@ func SampleField(B0, chi float64) (float64, error) {
 	if B0 <= 0 {
 		return 0, errors.New("B0 must be > 0")
 	}
-	return B0 * (1 - 4*math.Pi*chi/3), nil
+	live := B0 * (1 - 4*math.Pi*chi/3)
+	return attachSample(B0, chi, live), nil
 }
 
 // SusceptibilityFromShift inverts SampleField: given the observed shift deltaB
