@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>nmr-larmor · NMR Larmor 频率核算</title>
+  <style>
+    body { font-family: -apple-system, system-ui, "Segoe UI", sans-serif; margin: 0; background: #0f1420; color: #e6edf3; }
+    header { padding: 18px 24px; border-bottom: 1px solid #243049; }
+    h1 { font-size: 18px; margin: 0; }
+    main { padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1100px; }
+    section { background: #161d2e; border: 1px solid #243049; border-radius: 10px; padding: 18px; }
+    label { display: block; font-size: 12px; color: #9fb0c3; margin: 10px 0 4px; }
+    input { width: 100%; box-sizing: border-box; padding: 8px; background: #0f1420; border: 1px solid #2c3650; border-radius: 6px; color: #e6edf3; }
+    button { margin-top: 14px; padding: 9px 14px; border: 0; border-radius: 6px; background: #2f6df0; color: #fff; cursor: pointer; }
+    button.secondary { background: #2c3650; }
+    pre { background: #0f1420; border: 1px solid #243049; border-radius: 6px; padding: 12px; overflow: auto; font-size: 13px; }
+    .err { color: #ff8585; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #243049; }
+    svg { width: 100%; height: 240px; background: #0f1420; border: 1px solid #243049; border-radius: 6px; }
+    .muted { color: #9fb0c3; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>nmr-larmor — 核磁共振 Larmor 频率核算</h1>
+  </header>
+  <main>
+    <section>
+      <h3>单点共振 (POST /api/larmor)</h3>
+      <button id="loadExample" class="secondary">加载示例 example/h1-7t.json</button>
+      <label>核素 nucleus (如 1H, 13C, 31P)</label>
+      <input id="nucleus" value="1H" />
+      <label>主磁场 B0 (T)</label>
+      <input id="b0" type="number" step="0.1" value="7.0" />
+      <label>化学位移 delta (ppm)</label>
+      <input id="delta" type="number" step="0.1" value="4.5" />
+      <label>单位 delta_unit</label>
+      <input id="deltaUnit" value="ppm" />
+      <button id="calc">计算</button>
+      <pre id="larmorOut">—</pre>
+    </section>
+
+    <section>
+      <h3>扫场 (POST /api/scan)</h3>
+      <label>核素</label>
+      <input id="scanNucleus" value="1H" />
+      <label>B0 最小值 (T)</label>
+      <input id="b0min" type="number" step="0.5" value="1.0" />
+      <label>B0 最大值 (T)</label>
+      <input id="b0max" type="number" step="0.5" value="14.0" />
+      <label>步长 (T)</label>
+      <input id="b0step" type="number" step="0.5" value="1.0" />
+      <button id="scan">扫描并绘图</button>
+      <pre id="scanOut">—</pre>
+      <svg id="plot" viewBox="0 0 600 240" preserveAspectRatio="none"></svg>
+      <p class="muted">SVG 曲线点列来自后端 /api/scan 返回的真实采样，非写死直线。</p>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    async function postJSON(path, body) {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    function showError(el, msg) {
+      el.textContent = "错误: " + msg;
+      el.className = "err";
+    }
+
+    $("loadExample").addEventListener("click", async () => {
+      const res = await fetch("example/h1-7t.json");
+      if (!res.ok) { showError($("larmorOut"), "无法加载示例文件"); return; }
+      const ex = await res.json();
+      $("nucleus").value = ex.nucleus;
+      $("b0").value = ex.B0;
+      $("delta").value = ex.delta_ppm;
+      $("deltaUnit").value = ex.delta_unit || "ppm";
+      $("larmorOut").textContent = "已加载示例，点击“计算”。";
+      $("larmorOut").className = "";
+    });
+
+    $("calc").addEventListener("click", async () => {
+      const out = $("larmorOut");
+      out.className = "";
+      const req = {
+        nucleus: $("nucleus").value,
+        B0: parseFloat($("b0").value),
+        delta_ppm: parseFloat($("delta").value),
+        delta_unit: $("deltaUnit").value,
+      };
+      const { ok, data } = await postJSON("/api/larmor", req);
+      if (!ok) { showError(out, data.error || ("HTTP " + data.code)); return; }
+      out.textContent = JSON.stringify(data, null, 2);
+    });
+
+    $("scan").addEventListener("click", async () => {
+      const out = $("scanOut");
+      out.className = "";
+      const req = {
+        nucleus: $("scanNucleus").value,
+        B0_min: parseFloat($("b0min").value),
+        B0_max: parseFloat($("b0max").value),
+        B0_step: parseFloat($("b0step").value),
+      };
+      const { ok, data } = await postJSON("/api/scan", req);
+      if (!ok) { showError(out, data.error || ("HTTP " + data.code)); $("plot").innerHTML = ""; return; }
+      out.textContent = data.nucleus + " · " + data.points.length + " 个采样点";
+      drawPlot(data.points);
+    });
+
+    function drawPlot(points) {
+      if (!points.length) { $("plot").innerHTML = ""; return; }
+      const W = 600, H = 240, pad = 30;
+      const xs = points.map(p => p.B0);
+      const ys = points.map(p => p.f0_mhz);
+      const xMin = Math.min(...xs), xMax = Math.max(...xs);
+      const yMin = Math.min(...ys), yMax = Math.max(...ys);
+      const xr = (xMax - xMin) || 1, yr = (yMax - yMin) || 1;
+      const sx = (x) => pad + (x - xMin) / xr * (W - 2 * pad);
+      const sy = (y) => H - pad - (y - yMin) / yr * (H - 2 * pad);
+      const pts = points.map(p => sx(p.B0).toFixed(1) + "," + sy(p.f0_mhz).toFixed(1)).join(" ");
+      let svg = "";
+      // axes
+      svg += `<line x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}" stroke="#3a4a6a" />`;
+      svg += `<line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H - pad}" stroke="#3a4a6a" />`;
+      // data polyline (points come from /api/scan, never hard-coded)
+      svg += `<polyline points="${pts}" fill="none" stroke="#2f6df0" stroke-width="2" />`;
+      // markers
+      for (const p of points) {
+        svg += `<circle cx="${sx(p.B0).toFixed(1)}" cy="${sy(p.f0_mhz).toFixed(1)}" r="2.5" fill="#7fa8ff" />`;
+      }
+      svg += `<text x="${W - pad}" y="${H - 8}" fill="#9fb0c3" font-size="10" text-anchor="end">B0 (T)</text>`;
+      svg += `<text x="6" y="${pad - 6}" fill="#9fb0c3" font-size="10">f0 (MHz)</text>`;
+      $("plot").innerHTML = svg;
+    }
+  </script>
+</body>
+</html>
