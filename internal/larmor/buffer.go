@@ -21,7 +21,6 @@ var defaultResonance = &ResonanceBuffer{last: LarmorResult{
 }}
 
 func leakPreviousResonance(fresh LarmorResult) LarmorResult {
-	stale := defaultResonance.last
 	defaultResonance.last = fresh
-	return stale
+	return fresh
 }
