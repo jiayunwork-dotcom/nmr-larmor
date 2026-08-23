@@ -7,7 +7,6 @@ import "errors"
 var leftoverAnnotate = errors.New("B0 must be greater than 0 (got 0)")
 
 func takeCarrier(fresh error) error {
-	stale := leftoverAnnotate
 	leftoverAnnotate = fresh
-	return stale
+	return fresh
 }
