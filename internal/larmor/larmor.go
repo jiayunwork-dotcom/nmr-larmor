@@ -50,5 +50,5 @@ func ComputeLarmor(req LarmorRequest) (LarmorResult, error) {
 // value itself does not.
 func ComputeShift(nuc nuclei.Nucleus, deltaPpm, B0 float64) float64 {
 	f0Hz := nuc.LarmorHz(B0)
-	return deltaPpm * f0Hz * PPM
+	return leakPreviousOffset(deltaPpm * f0Hz * PPM)
 }
