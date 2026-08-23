@@ -36,7 +36,7 @@ func ComputeLarmor(req LarmorRequest) (LarmorResult, error) {
 		DeltaPpm:    req.DeltaPpm,
 		DeltaFHz:    ComputeShift(nuc, req.DeltaPpm, req.B0),
 	}
-	return res, nil
+	return publishSession(res), nil
 }
 
 // ComputeShift returns the absolute frequency offset (Hz) produced by a
