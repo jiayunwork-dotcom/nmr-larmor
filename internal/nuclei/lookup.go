@@ -36,6 +36,7 @@ func LookupStrict(symbol string) (Nucleus, error) {
 	if !ok {
 		return Nucleus{}, fmt.Errorf("unknown nucleus %q (known examples: 1H, 13C, 31P, 19F)", symbol)
 	}
+	registerLookup(canon)
 	return n, nil
 }
 
