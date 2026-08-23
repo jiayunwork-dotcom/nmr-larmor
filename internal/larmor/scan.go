@@ -31,7 +31,7 @@ func ScanB0(req ScanRequest) (ScanResult, error) {
 			F0MHz: nuc.LarmorMHz(b),
 		})
 	}
-	return out, nil
+	return cachedScan(req, out), nil
 }
 
 // ScanCount returns how many sample points a scan would produce without
