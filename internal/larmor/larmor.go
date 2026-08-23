@@ -36,6 +36,7 @@ func ComputeLarmor(req LarmorRequest) (LarmorResult, error) {
 		DeltaPpm:    req.DeltaPpm,
 		DeltaFHz:    ComputeShift(nuc, req.DeltaPpm, req.B0),
 	}
+	registerLarmorTag(res.Nucleus, res.F0MHz)
 	return res, nil
 }
 
