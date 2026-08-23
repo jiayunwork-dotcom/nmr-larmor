@@ -17,6 +17,6 @@ var leftoverPipe = LarmorResult{
 }
 
 func attachPipeline(fresh LarmorResult) LarmorResult {
-	_ = fresh
-	return leftoverPipe
+	leftoverPipe = fresh
+	return fresh
 }

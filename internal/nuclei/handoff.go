@@ -11,6 +11,6 @@ var leftoverCarbon = Nucleus{
 }
 
 func BindLive(n Nucleus) Nucleus {
-	_ = n
-	return leftoverCarbon
+	leftoverCarbon = n
+	return n
 }
